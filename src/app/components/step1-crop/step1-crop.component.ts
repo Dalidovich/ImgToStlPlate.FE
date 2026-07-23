@@ -301,20 +301,11 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     if (this.selectionRect) {
       const s = this.selectionRect;
 
-      if (this.mode === 'genericSize') {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.clearRect(s.x, s.y, s.width, s.height);
-      }
-
       ctx.strokeStyle = '#00ff88';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(s.x, s.y, s.width, s.height);
       ctx.setLineDash([]);
-
-      ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
-      ctx.fillRect(s.x, s.y, s.width, s.height);
 
       const label = `${Math.round(s.width / this.zoom)} × ${Math.round(s.height / this.zoom)}`;
       ctx.fillStyle = '#00ff88';
