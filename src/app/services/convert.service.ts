@@ -20,7 +20,8 @@ export class ConvertService {
     selection: CropSelection,
     orientation: string,
     fillSpace: boolean,
-    invert: boolean
+    invert: boolean,
+    angle: number = 0
   ): Observable<Blob> {
     const formData = new FormData();
     formData.append('image', image);
@@ -28,6 +29,7 @@ export class ConvertService {
     formData.append('orientation', orientation);
     formData.append('fillSpace', fillSpace.toString());
     formData.append('invert', invert.toString());
+    formData.append('rotationDegrees', angle.toString());
     return this.http.post(`${this.apiUrl}/to-bw`, formData, { responseType: 'blob' });
   }
 

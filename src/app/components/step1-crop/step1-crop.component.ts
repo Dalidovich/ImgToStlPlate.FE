@@ -111,13 +111,20 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   fitImageToCanvas(): void {
     const canvas = this.canvasRef.nativeElement;
     const padding = 40;
+    const a = (this.state.rotation * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(a));
+    const sin = Math.abs(Math.sin(a));
+    const rotatedW = this.imageWidth * cos + this.imageHeight * sin;
+    const rotatedH = this.imageWidth * sin + this.imageHeight * cos;
     const availW = canvas.width - padding * 2;
     const availH = canvas.height - padding * 2;
-    const scaleX = availW / this.imageWidth;
-    const scaleY = availH / this.imageHeight;
+    const scaleX = availW / rotatedW;
+    const scaleY = availH / rotatedH;
     this.zoom = Math.min(scaleX, scaleY, 1);
-    this.panX = (canvas.width - this.imageWidth * this.zoom) / 2;
-    this.panY = (canvas.height - this.imageHeight * this.zoom) / 2;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    this.panX = cx - (this.zoom * rotatedW) / 2;
+    this.panY = cy - (this.zoom * rotatedH) / 2;
     this.render();
   }
 
@@ -127,6 +134,14 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     const rect = canvas.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
+
+    if (event.ctrlKey) {
+      const delta = event.deltaY > 0 ? -2 : 2;
+      this.state.rotation += delta;
+      this.cancelSelection();
+      this.fitImageToCanvas();
+      return;
+    }
 
     const oldZoom = this.zoom;
     const factor = event.deltaY < 0 ? 1.1 : 0.9;
@@ -233,10 +248,15 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
 
   private clampRect(x: number, y: number, w: number, h: number): Rect {
     const canvas = this.canvasRef.nativeElement;
-    const imgLeft = this.panX;
-    const imgTop = this.panY;
-    const imgRight = this.panX + this.imageWidth * this.zoom;
-    const imgBottom = this.panY + this.imageHeight * this.zoom;
+    const a = (this.state.rotation * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(a));
+    const sin = Math.abs(Math.sin(a));
+    const rotatedW = this.imageWidth * cos + this.imageHeight * sin;
+    const rotatedH = this.imageWidth * sin + this.imageHeight * cos;
+    const imgLeft = (canvas.width - rotatedW * this.zoom) / 2;
+    const imgTop = (canvas.height - rotatedH * this.zoom) / 2;
+    const imgRight = imgLeft + rotatedW * this.zoom;
+    const imgBottom = imgTop + rotatedH * this.zoom;
     x = Math.max(imgLeft, x);
     y = Math.max(imgTop, y);
     w = Math.min(w, imgRight - x);
@@ -261,19 +281,39 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     this.render();
   }
 
+  resetRotation(): void {
+    this.state.rotation = 0;
+    this.cancelSelection();
+    this.fitImageToCanvas();
+  }
+
   onOkClick(): void {
     if (!this.selectionRect || !this.state.originalImage) return;
 
-    const canvasX = (this.selectionRect.x - this.panX) / this.zoom;
-    const canvasY = (this.selectionRect.y - this.panY) / this.zoom;
-    const canvasW = this.selectionRect.width / this.zoom;
-    const canvasH = this.selectionRect.height / this.zoom;
+    const a = (this.state.rotation * Math.PI) / 180;
+    const absCos = Math.abs(Math.cos(a));
+    const absSin = Math.abs(Math.sin(a));
+    const newW = this.imageWidth * absCos + this.imageHeight * absSin;
+    const newH = this.imageWidth * absSin + this.imageHeight * absCos;
+    const offsetX = newW / 2 - this.imageWidth / 2;
+    const offsetY = newH / 2 - this.imageHeight / 2;
+
+    const toRotated = (sx: number, sy: number): { x: number; y: number } => ({
+      x: (sx - this.panX) / this.zoom + offsetX,
+      y: (sy - this.panY) / this.zoom + offsetY,
+    });
+
+    const tl = toRotated(this.selectionRect.x, this.selectionRect.y);
+    const br = toRotated(
+      this.selectionRect.x + this.selectionRect.width,
+      this.selectionRect.y + this.selectionRect.height
+    );
 
     this.state.cropSelection = {
-      x: Math.round(canvasX),
-      y: Math.round(canvasY),
-      width: Math.round(canvasW),
-      height: Math.round(canvasH),
+      x: Math.round(Math.min(tl.x, br.x)),
+      y: Math.round(Math.min(tl.y, br.y)),
+      width: Math.round(Math.abs(br.x - tl.x)),
+      height: Math.round(Math.abs(br.y - tl.y)),
     };
 
     this.router.navigate(['/step2']);
@@ -295,6 +335,11 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     ctx.save();
     ctx.translate(this.panX, this.panY);
     ctx.scale(this.zoom, this.zoom);
+    if (this.state.rotation !== 0) {
+      ctx.translate(this.imageWidth / 2, this.imageHeight / 2);
+      ctx.rotate((this.state.rotation * Math.PI) / 180);
+      ctx.translate(-this.imageWidth / 2, -this.imageHeight / 2);
+    }
     ctx.drawImage(this.image, 0, 0, this.imageWidth, this.imageHeight);
     ctx.restore();
 

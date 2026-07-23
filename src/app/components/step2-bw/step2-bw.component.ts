@@ -83,7 +83,8 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
           this.state.cropSelection,
           this.orientation,
           this.fillSpace,
-          this.invert
+          this.invert,
+          this.state.rotation
         )
         .subscribe({
           next: (blob) => {
@@ -255,7 +256,8 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
         this.state.cropSelection,
         this.orientation,
         this.fillSpace,
-        this.invert
+        this.invert,
+        this.state.rotation
       )
       .subscribe({
         next: (blob) => {

@@ -6,6 +6,7 @@ export class StateService {
   originalImage: File | null = null;
   originalImageUrl: string | null = null;
   cropSelection: CropSelection | null = null;
+  rotation = 0;
   modelWidth = 30;
   modelHeight = 60;
   modelThickness = 2;
