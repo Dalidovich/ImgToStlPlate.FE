@@ -1,0 +1,88 @@
+<div class="step1">
+  <div class="header">
+    <button class="back-btn" (click)="router.navigate(['/'])" disabled>← Back</button>
+    <h2>Step 1 — Upload & Crop</h2>
+    <div class="header-spacer"></div>
+  </div>
+
+  <div class="workspace">
+    <div class="canvas-area">
+      @if (!imageLoaded) {
+        <div class="upload-zone">
+          <label for="fileInput" class="upload-label">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+            <span>Drop image here or click to browse</span>
+          </label>
+          <input
+            #fileInput
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            (change)="onFileSelected($event)"
+            hidden
+          />
+        </div>
+      }
+
+      <canvas
+        #canvas
+        class="crop-canvas"
+        (mousedown)="onCanvasMouseDown($event)"
+        (mousemove)="onCanvasMouseMove($event)"
+        (mouseup)="onCanvasMouseUp($event)"
+        (wheel)="onCanvasWheel($event)"
+        (contextmenu)="onCanvasContextMenu($event)"
+      ></canvas>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-title">Selection</div>
+        <div class="button-group">
+          <button
+            class="mode-btn"
+            [class.active]="mode === 'crop'"
+            (click)="setMode('crop')"
+            [disabled]="(mode !== 'none' && !showOk)"
+          >
+            Crop
+          </button>
+          <button
+            class="mode-btn"
+            [class.active]="mode === 'genericSize'"
+            (click)="setMode('genericSize')"
+            [disabled]="(mode !== 'none' && !showOk)"
+          >
+            Generic size
+          </button>
+        </div>
+
+        @if (mode !== 'none' && !showOk) {
+          <div class="mode-hint">
+            Click & drag to select. Right-click to cancel.
+          </div>
+        }
+
+        @if (showOk) {
+          <div class="ok-row">
+            <button class="cancel-btn" (click)="cancelSelection()">Cancel</button>
+            <button class="ok-btn" (click)="onOkClick()">
+              OK
+            </button>
+          </div>
+        }
+      </div>
+
+      @if (imageLoaded) {
+        <div class="panel">
+          <div class="panel-title">Image</div>
+          <div class="image-info">{{ imageWidth }} × {{ imageHeight }} px</div>
+          <div class="image-info">Zoom: {{ (zoom * 100).toFixed(0) }}%</div>
+          <button class="mode-btn" (click)="fitImageToCanvas()">Fit to view</button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

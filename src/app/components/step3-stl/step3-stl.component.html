@@ -1,0 +1,32 @@
+<div class="step3">
+  <div class="header">
+    <button class="back-btn" (click)="router.navigate(['/step2'])">← Back</button>
+    <h2>Step 3 — 3D Preview</h2>
+    <div class="header-spacer"></div>
+  </div>
+
+  <div class="viewer-container">
+    <div #viewer class="viewer"></div>
+  </div>
+
+  <div class="footer">
+    <button
+      class="invert-btn"
+      [class.active]="invertColors"
+      (click)="toggleInvert()"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 2a10 10 0 010 20V2z" fill="currentColor"/>
+      </svg>
+      Invert Colors
+    </button>
+
+    <button class="download-btn" (click)="downloadStl()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+      </svg>
+      Download STL
+    </button>
+  </div>
+</div>
