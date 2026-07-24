@@ -50,6 +50,10 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     cancelAnimationFrame(this.animFrameId);
     this.controls?.dispose();
+    this.renderer?.domElement.removeEventListener('wheel', this.onWheel);
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener('resize', this.onResize);
     this.renderer?.dispose();
   }
 
@@ -73,6 +77,8 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.1;
 
+    this.renderer.domElement.addEventListener('wheel', this.onWheel, { passive: false });
+
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambientLight);
 
@@ -88,6 +94,8 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
     this.ngZone.runOutsideAngular(() => this.animate());
 
     window.addEventListener('resize', this.onResize);
+    window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
   }
 
   private loadStl(): void {
@@ -158,10 +166,41 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
     this.applyVertexColors(this.invertColors);
   }
 
+  resetRotation(): void {
+    if (this.mesh) {
+      this.mesh.rotation.z = 0;
+    }
+  }
+
+  get isRotated(): boolean {
+    return this.mesh ? Math.abs(this.mesh.rotation.z) > 0.001 : false;
+  }
+
   private animate = (): void => {
     this.animFrameId = requestAnimationFrame(this.animate);
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
+  };
+
+  private onWheel = (event: WheelEvent): void => {
+    if (!event.ctrlKey) return;
+    event.preventDefault();
+
+    if (this.mesh) {
+      this.mesh.rotation.z += event.deltaY * 0.002;
+    }
+  };
+
+  private onKeyUp = (event: KeyboardEvent): void => {
+    if (event.key === 'Control') {
+      this.controls.enableZoom = true;
+    }
+  };
+
+  private onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === 'Control') {
+      this.controls.enableZoom = false;
+    }
   };
 
   private onResize = (): void => {

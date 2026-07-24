@@ -57,6 +57,16 @@
   }
 }
 
+.viewer-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #666;
+  pointer-events: none;
+}
+
 .footer {
   padding: 14px 20px;
   background: #222;
