@@ -337,6 +337,18 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     this.fitImageToCanvas();
   }
 
+  unloadImage(): void {
+    this.imageLoaded = false;
+    this.imageWidth = 0;
+    this.imageHeight = 0;
+    this.state.originalImage = null;
+    this.state.originalImageUrl = null;
+    this.state.cropSelection = null;
+    this.state.rotation = 0;
+    this.cancelSelection();
+    this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
+  }
+
   onOkClick(): void {
     if (!this.selectionRect || !this.state.originalImage) return;
 

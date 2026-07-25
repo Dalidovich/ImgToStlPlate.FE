@@ -326,3 +326,13 @@
   margin-bottom: 6px;
   font-family: monospace;
 }
+
+.unload-btn {
+  border-color: #553333;
+  color: #cc6666;
+
+  &:hover {
+    border-color: #ff4444;
+    color: #ff4444;
+  }
+}
