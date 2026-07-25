@@ -47,6 +47,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   imageLoaded = false;
   imageWidth = 0;
   imageHeight = 0;
+  isDragging = false;
 
   constructor(
     readonly router: Router,
@@ -96,6 +97,41 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
     const file = input.files[0];
+    this.state.originalImage = file;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.state.originalImageUrl = reader.result as string;
+      this.loadImageFromUrl(this.state.originalImageUrl);
+    };
+    reader.readAsDataURL(file);
+
+    this.cancelSelection();
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+
+    const files = event.dataTransfer?.files;
+    if (!files?.length) return;
+
+    const file = files[0];
+    if (!file.type.startsWith('image/')) return;
+
     this.state.originalImage = file;
 
     const reader = new FileReader();

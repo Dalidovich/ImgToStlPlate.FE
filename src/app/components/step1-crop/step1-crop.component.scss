@@ -75,6 +75,15 @@
   justify-content: center;
   z-index: 1;
   background: #111;
+
+  &.drag-over {
+    background: rgba(0, 255, 136, 0.08);
+
+    .upload-label {
+      border-color: #00ff88;
+      color: #00ff88;
+    }
+  }
 }
 
 .upload-label {
