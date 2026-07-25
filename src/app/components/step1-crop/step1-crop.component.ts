@@ -378,6 +378,9 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
       height: Math.round(Math.abs(br.y - tl.y)),
     };
 
+    this.state.modelWidth = Math.round(this.state.cropSelection.width / 10);
+    this.state.modelHeight = Math.round(this.state.cropSelection.height / 10);
+
     this.router.navigate(['/step2']);
   }
 

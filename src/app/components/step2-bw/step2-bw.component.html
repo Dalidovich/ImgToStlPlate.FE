@@ -24,6 +24,10 @@
       <div class="panel">
         <div class="panel-title">Options</div>
 
+        @if (imageLoaded) {
+          <div class="image-info">B&W size: {{ imageWidth }} × {{ imageHeight }} px</div>
+        }
+
         <div class="toggle-row">
           <span class="toggle-label">Orientation</span>
           <button
