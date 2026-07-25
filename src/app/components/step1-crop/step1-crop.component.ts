@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ElementRef, ViewChild, AfterViewInit, HostListener } from '@angular/core';
+import { Component, OnDestroy, ElementRef, ViewChild, AfterViewInit, HostListener, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CropSelection } from '../../services/convert.service';
@@ -26,6 +26,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   private ctx!: CanvasRenderingContext2D;
   private image = new Image();
   private animFrameId = 0;
+  private resizeObserver?: ResizeObserver;
 
   zoom = 1;
   panX = 0;
@@ -49,11 +50,23 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
 
   constructor(
     readonly router: Router,
-    public state: StateService
+    public state: StateService,
+    private zone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngAfterViewInit(): void {
     this.ctx = this.canvasRef.nativeElement.getContext('2d')!;
+
+    const container = this.canvasRef.nativeElement.parentElement!;
+    this.resizeObserver = new ResizeObserver(() => {
+      this.resizeCanvas();
+      if (this.imageLoaded) {
+        this.fitImageToCanvas();
+      }
+    });
+    this.resizeObserver.observe(container);
+
     this.resizeCanvas();
     if (this.state.originalImageUrl) {
       this.loadImageFromUrl(this.state.originalImageUrl);
@@ -62,6 +75,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.animFrameId);
+    this.resizeObserver?.disconnect();
   }
 
   @HostListener('window:resize')
@@ -96,11 +110,11 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
 
   private loadImageFromUrl(url: string): void {
     this.image.onload = () => {
-      this.imageWidth = this.image.naturalWidth;
-      this.imageHeight = this.image.naturalHeight;
-      this.imageLoaded = true;
-      // Defer to next frame so canvas DOM has updated dimensions
-      requestAnimationFrame(() => {
+      this.zone.run(() => {
+        this.imageWidth = this.image.naturalWidth;
+        this.imageHeight = this.image.naturalHeight;
+        this.imageLoaded = true;
+        this.cdr.markForCheck();
         this.resizeCanvas();
         this.fitImageToCanvas();
       });
