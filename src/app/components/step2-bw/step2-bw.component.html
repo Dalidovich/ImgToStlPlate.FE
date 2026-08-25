@@ -64,33 +64,45 @@
             id="modelWidth"
             type="number"
             [(ngModel)]="modelWidth"
-            min="1"
-            max="500"
+            [class.invalid]="widthError"
+            [min]="minDimension"
+            [max]="maxDimension"
             step="0.1"
           />
         </div>
+        @if (widthError) {
+          <div class="field-error">{{ widthError }}</div>
+        }
         <div class="input-group">
           <label for="modelHeight">Height</label>
           <input
             id="modelHeight"
             type="number"
             [(ngModel)]="modelHeight"
-            min="1"
-            max="500"
+            [class.invalid]="heightError"
+            [min]="minDimension"
+            [max]="maxDimension"
             step="0.1"
           />
         </div>
+        @if (heightError) {
+          <div class="field-error">{{ heightError }}</div>
+        }
         <div class="input-group">
           <label for="thickness">Thickness</label>
           <input
             id="thickness"
             type="number"
             [(ngModel)]="modelThickness"
-            min="0.1"
-            max="50"
+            [class.invalid]="thicknessError"
+            [min]="minThickness"
+            [max]="maxThickness"
             step="0.1"
           />
         </div>
+        @if (thicknessError) {
+          <div class="field-error">{{ thicknessError }}</div>
+        }
       </div>
 
       <div class="panel">
@@ -115,10 +127,14 @@
         </div>
       </div>
 
+      @if (errorMessage) {
+        <div class="error-banner">{{ errorMessage }}</div>
+      }
+
       <button
         class="render-btn"
         (click)="onRender()"
-        [disabled]="rendering || !state.currentBwImage"
+        [disabled]="rendering || !state.currentBwImage || hasInvalidDimensions"
       >
         @if (rendering) {
           <span class="btn-spinner"></span> Rendering...

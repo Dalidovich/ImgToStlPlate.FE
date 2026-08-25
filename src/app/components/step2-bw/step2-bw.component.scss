@@ -163,7 +163,27 @@
       outline: none;
       border-color: #00ff88;
     }
+
+    &.invalid {
+      border-color: #ff5252;
+    }
   }
+}
+
+.field-error {
+  font-size: 11px;
+  color: #ff5252;
+  margin-top: -6px;
+}
+
+.error-banner {
+  padding: 10px 12px;
+  border: 1px solid #ff5252;
+  border-radius: 6px;
+  background: rgba(255, 82, 82, 0.12);
+  color: #ff8a80;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .slider-group {

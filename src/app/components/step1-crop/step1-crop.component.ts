@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CropSelection } from '../../services/convert.service';
 import { StateService } from '../../services/state.service';
+import { defaultModelDimensions } from '../../services/model-dimensions';
 
 type CropMode = 'none' | 'crop' | 'genericSize';
 
@@ -378,8 +379,9 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
       height: Math.round(Math.abs(br.y - tl.y)),
     };
 
-    this.state.modelWidth = Math.round(this.state.cropSelection.width / 10);
-    this.state.modelHeight = Math.round(this.state.cropSelection.height / 10);
+    const dimensions = defaultModelDimensions(this.state.cropSelection, this.state.orientation);
+    this.state.modelWidth = dimensions.width;
+    this.state.modelHeight = dimensions.height;
 
     this.router.navigate(['/step2']);
   }

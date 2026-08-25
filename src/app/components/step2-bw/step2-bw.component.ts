@@ -6,6 +6,7 @@ import {
   ViewChild,
   AfterViewInit,
   HostListener,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +14,15 @@ import { Router } from '@angular/router';
 import { Subject, debounceTime, switchMap, takeUntil } from 'rxjs';
 import { ConvertService } from '../../services/convert.service';
 import { StateService } from '../../services/state.service';
+import {
+  MAX_MODEL_DIMENSION_MM,
+  MAX_THICKNESS_MM,
+  MIN_MODEL_DIMENSION_MM,
+  MIN_THICKNESS_MM,
+  dimensionError,
+  thicknessError,
+} from '../../services/model-dimensions';
+import { problemDetail } from '../../services/problem-details';
 
 @Component({
   selector: 'app-step2-bw',
@@ -38,6 +48,12 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
   intensity = 0;
   processing = false;
   rendering = false;
+  errorMessage: string | null = null;
+
+  readonly minDimension = MIN_MODEL_DIMENSION_MM;
+  readonly maxDimension = MAX_MODEL_DIMENSION_MM;
+  readonly minThickness = MIN_THICKNESS_MM;
+  readonly maxThickness = MAX_THICKNESS_MM;
 
   zoom = 1;
   panX = 0;
@@ -59,8 +75,25 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     readonly router: Router,
     private convertService: ConvertService,
-    public state: StateService
+    public state: StateService,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  get widthError(): string | null {
+    return dimensionError('Width', this.modelWidth);
+  }
+
+  get heightError(): string | null {
+    return dimensionError('Height', this.modelHeight);
+  }
+
+  get thicknessError(): string | null {
+    return thicknessError(this.modelThickness);
+  }
+
+  get hasInvalidDimensions(): boolean {
+    return this.widthError !== null || this.heightError !== null || this.thicknessError !== null;
+  }
 
   ngOnInit(): void {
     if (!this.state.originalImage || !this.state.cropSelection) {
@@ -91,8 +124,9 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
             this.state.setBwImage(blob);
             this.loadCurrentImage();
           },
-          error: () => {
-            this.router.navigate(['/step1']);
+          error: (err) => {
+            this.imageLoaded = true;
+            this.showError(err, 'Failed to convert the image to black & white.');
           },
         });
     }
@@ -119,8 +153,9 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           this.processing = false;
         },
-        error: () => {
+        error: (err) => {
           this.processing = false;
+          this.showError(err, 'Failed to denoise the image.');
         },
       });
   }
@@ -233,6 +268,9 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onOrientationChange(): void {
     this.orientation = this.orientation === 'horizontal' ? 'vertical' : 'horizontal';
+    const previousWidth = this.modelWidth;
+    this.modelWidth = this.modelHeight;
+    this.modelHeight = previousWidth;
     this.applyOptions();
   }
 
@@ -246,6 +284,7 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private applyOptions(): void {
     if (!this.state.originalImage || !this.state.cropSelection) return;
+    this.errorMessage = null;
     this.intensity = 0;
     this.intensity$.next(0);
     this.processing = false;
@@ -264,8 +303,9 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
           this.state.setBwImage(blob);
           this.loadCurrentImage();
         },
-        error: () => {
+        error: (err) => {
           this.imageLoaded = true;
+          this.showError(err, 'Failed to apply the selected options.');
         },
       });
   }
@@ -275,7 +315,8 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onRender(): void {
-    if (!this.state.currentBwImage) return;
+    if (!this.state.currentBwImage || this.hasInvalidDimensions) return;
+    this.errorMessage = null;
     this.state.modelWidth = this.modelWidth;
     this.state.modelHeight = this.modelHeight;
     this.state.modelThickness = this.modelThickness;
@@ -289,9 +330,17 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
         this.rendering = false;
         this.router.navigate(['/step3']);
       },
-      error: () => {
+      error: (err) => {
         this.rendering = false;
+        this.showError(err, 'Failed to generate the STL model.');
       },
+    });
+  }
+
+  private showError(error: unknown, fallback: string): void {
+    problemDetail(error, fallback).then((message) => {
+      this.errorMessage = message;
+      this.cdr.markForCheck();
     });
   }
 
