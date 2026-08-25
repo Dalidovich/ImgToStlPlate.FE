@@ -159,23 +159,61 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     this.image.src = url;
   }
 
-  fitImageToCanvas(): void {
-    const canvas = this.canvasRef.nativeElement;
-    const padding = 40;
+  private rotatedImageMetrics(): {
+    width: number;
+    height: number;
+    offsetX: number;
+    offsetY: number;
+  } {
     const a = (this.state.rotation * Math.PI) / 180;
     const cos = Math.abs(Math.cos(a));
     const sin = Math.abs(Math.sin(a));
-    const rotatedW = this.imageWidth * cos + this.imageHeight * sin;
-    const rotatedH = this.imageWidth * sin + this.imageHeight * cos;
-    const availW = canvas.width - padding * 2;
-    const availH = canvas.height - padding * 2;
-    const scaleX = availW / rotatedW;
-    const scaleY = availH / rotatedH;
+    const width = this.imageWidth * cos + this.imageHeight * sin;
+    const height = this.imageWidth * sin + this.imageHeight * cos;
+    return {
+      width,
+      height,
+      offsetX: (width - this.imageWidth) / 2,
+      offsetY: (height - this.imageHeight) / 2,
+    };
+  }
+
+  private screenToImage(point: { x: number; y: number }): { x: number; y: number } {
+    const { offsetX, offsetY } = this.rotatedImageMetrics();
+    return {
+      x: (point.x - this.panX) / this.zoom + offsetX,
+      y: (point.y - this.panY) / this.zoom + offsetY,
+    };
+  }
+
+  private imageToScreen(point: { x: number; y: number }): { x: number; y: number } {
+    const { offsetX, offsetY } = this.rotatedImageMetrics();
+    return {
+      x: this.panX + (point.x - offsetX) * this.zoom,
+      y: this.panY + (point.y - offsetY) * this.zoom,
+    };
+  }
+
+  private imageBoundsOnScreen(): Rect {
+    const { width, height } = this.rotatedImageMetrics();
+    const topLeft = this.imageToScreen({ x: 0, y: 0 });
+    return {
+      x: topLeft.x,
+      y: topLeft.y,
+      width: width * this.zoom,
+      height: height * this.zoom,
+    };
+  }
+
+  fitImageToCanvas(): void {
+    const canvas = this.canvasRef.nativeElement;
+    const padding = 40;
+    const { width, height, offsetX, offsetY } = this.rotatedImageMetrics();
+    const scaleX = (canvas.width - padding * 2) / width;
+    const scaleY = (canvas.height - padding * 2) / height;
     this.zoom = Math.min(scaleX, scaleY, 1);
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    this.panX = cx - (this.zoom * rotatedW) / 2;
-    this.panY = cy - (this.zoom * rotatedH) / 2;
+    this.panX = canvas.width / 2 - (this.zoom * width) / 2 + this.zoom * offsetX;
+    this.panY = canvas.height / 2 - (this.zoom * height) / 2 + this.zoom * offsetY;
     this.render();
   }
 
@@ -298,21 +336,19 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   }
 
   private clampRect(x: number, y: number, w: number, h: number): Rect {
-    const canvas = this.canvasRef.nativeElement;
-    const a = (this.state.rotation * Math.PI) / 180;
-    const cos = Math.abs(Math.cos(a));
-    const sin = Math.abs(Math.sin(a));
-    const rotatedW = this.imageWidth * cos + this.imageHeight * sin;
-    const rotatedH = this.imageWidth * sin + this.imageHeight * cos;
-    const imgLeft = (canvas.width - rotatedW * this.zoom) / 2;
-    const imgTop = (canvas.height - rotatedH * this.zoom) / 2;
-    const imgRight = imgLeft + rotatedW * this.zoom;
-    const imgBottom = imgTop + rotatedH * this.zoom;
-    x = Math.max(imgLeft, x);
-    y = Math.max(imgTop, y);
-    w = Math.min(w, imgRight - x);
-    h = Math.min(h, imgBottom - y);
-    return { x, y, width: Math.max(0, w), height: Math.max(0, h) };
+    const bounds = this.imageBoundsOnScreen();
+    const imgRight = bounds.x + bounds.width;
+    const imgBottom = bounds.y + bounds.height;
+    const left = Math.min(Math.max(bounds.x, x), imgRight);
+    const top = Math.min(Math.max(bounds.y, y), imgBottom);
+    const right = Math.min(imgRight, Math.max(bounds.x, x + w));
+    const bottom = Math.min(imgBottom, Math.max(bounds.y, y + h));
+    return {
+      x: left,
+      y: top,
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top),
+    };
   }
 
   setMode(newMode: CropMode): void {
@@ -353,24 +389,11 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   onOkClick(): void {
     if (!this.selectionRect || !this.state.originalImage) return;
 
-    const a = (this.state.rotation * Math.PI) / 180;
-    const absCos = Math.abs(Math.cos(a));
-    const absSin = Math.abs(Math.sin(a));
-    const newW = this.imageWidth * absCos + this.imageHeight * absSin;
-    const newH = this.imageWidth * absSin + this.imageHeight * absCos;
-    const offsetX = newW / 2 - this.imageWidth / 2;
-    const offsetY = newH / 2 - this.imageHeight / 2;
-
-    const toRotated = (sx: number, sy: number): { x: number; y: number } => ({
-      x: (sx - this.panX) / this.zoom + offsetX,
-      y: (sy - this.panY) / this.zoom + offsetY,
+    const tl = this.screenToImage({ x: this.selectionRect.x, y: this.selectionRect.y });
+    const br = this.screenToImage({
+      x: this.selectionRect.x + this.selectionRect.width,
+      y: this.selectionRect.y + this.selectionRect.height,
     });
-
-    const tl = toRotated(this.selectionRect.x, this.selectionRect.y);
-    const br = toRotated(
-      this.selectionRect.x + this.selectionRect.width,
-      this.selectionRect.y + this.selectionRect.height
-    );
 
     this.state.cropSelection = {
       x: Math.round(Math.min(tl.x, br.x)),
@@ -399,9 +422,13 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
 
     if (!this.imageLoaded) return;
 
+    const { offsetX, offsetY } = this.rotatedImageMetrics();
+    const origin = this.imageToScreen({ x: 0, y: 0 });
+
     ctx.save();
-    ctx.translate(this.panX, this.panY);
+    ctx.translate(origin.x, origin.y);
     ctx.scale(this.zoom, this.zoom);
+    ctx.translate(offsetX, offsetY);
     if (this.state.rotation !== 0) {
       ctx.translate(this.imageWidth / 2, this.imageHeight / 2);
       ctx.rotate((this.state.rotation * Math.PI) / 180);
@@ -419,7 +446,9 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
       ctx.strokeRect(s.x, s.y, s.width, s.height);
       ctx.setLineDash([]);
 
-      const label = `${Math.round(s.width / this.zoom)} × ${Math.round(s.height / this.zoom)}`;
+      const tl = this.screenToImage({ x: s.x, y: s.y });
+      const br = this.screenToImage({ x: s.x + s.width, y: s.y + s.height });
+      const label = `${Math.round(br.x - tl.x)} × ${Math.round(br.y - tl.y)}`;
       ctx.fillStyle = '#00ff88';
       ctx.font = '12px monospace';
       ctx.fillText(label, s.x + 4, s.y - 4);
