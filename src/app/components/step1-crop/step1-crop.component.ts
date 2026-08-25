@@ -98,6 +98,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
     const file = input.files[0];
+    this.state.resetBwState();
     this.state.originalImage = file;
 
     const reader = new FileReader();
@@ -133,6 +134,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     const file = files[0];
     if (!file.type.startsWith('image/')) return;
 
+    this.state.resetBwState();
     this.state.originalImage = file;
 
     const reader = new FileReader();
@@ -378,10 +380,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     this.imageLoaded = false;
     this.imageWidth = 0;
     this.imageHeight = 0;
-    this.state.originalImage = null;
-    this.state.originalImageUrl = null;
-    this.state.cropSelection = null;
-    this.state.rotation = 0;
+    this.state.reset();
     this.cancelSelection();
     this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
   }

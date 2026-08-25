@@ -22,14 +22,29 @@ export class StateService {
   stlBlob: Blob | null = null;
 
   cleanupObjectUrls(): void {
-    this.revokeUrl(this.originalBwImageUrl);
-    this.originalBwImageUrl = null;
-    this.revokeUrl(this.currentBwImageUrl);
-    this.currentBwImageUrl = null;
+    this.revokeBwUrls();
+    this.revokeUrl(this.originalImageUrl);
+    this.originalImageUrl = null;
+  }
+
+  resetBwState(): void {
+    this.revokeBwUrls();
+    this.originalBwImage = null;
+    this.currentBwImage = null;
+    this.stlBlob = null;
+  }
+
+  reset(): void {
+    this.resetBwState();
+    this.revokeUrl(this.originalImageUrl);
+    this.originalImageUrl = null;
+    this.originalImage = null;
+    this.cropSelection = null;
+    this.rotation = 0;
   }
 
   setBwImage(blob: Blob): void {
-    this.revokeUrl(this.originalBwImageUrl);
+    this.revokeBwUrls();
     this.originalBwImage = blob;
     this.originalBwImageUrl = URL.createObjectURL(blob);
     this.currentBwImage = blob;
@@ -37,11 +52,28 @@ export class StateService {
   }
 
   setCurrentBwImage(blob: Blob): void {
-    if (this.currentBwImageUrl && this.currentBwImageUrl !== this.originalBwImageUrl) {
+    if (this.currentBwImageUrl !== this.originalBwImageUrl) {
       this.revokeUrl(this.currentBwImageUrl);
     }
     this.currentBwImage = blob;
     this.currentBwImageUrl = URL.createObjectURL(blob);
+  }
+
+  restoreOriginalBwImage(): void {
+    if (this.currentBwImageUrl !== this.originalBwImageUrl) {
+      this.revokeUrl(this.currentBwImageUrl);
+    }
+    this.currentBwImage = this.originalBwImage;
+    this.currentBwImageUrl = this.originalBwImageUrl;
+  }
+
+  private revokeBwUrls(): void {
+    if (this.currentBwImageUrl !== this.originalBwImageUrl) {
+      this.revokeUrl(this.currentBwImageUrl);
+    }
+    this.revokeUrl(this.originalBwImageUrl);
+    this.originalBwImageUrl = null;
+    this.currentBwImageUrl = null;
   }
 
   private revokeUrl(url: string | null): void {

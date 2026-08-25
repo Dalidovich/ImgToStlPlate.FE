@@ -11,7 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject, debounceTime, switchMap, takeUntil } from 'rxjs';
+import { EMPTY, Subject, catchError, debounceTime, switchMap, takeUntil, tap } from 'rxjs';
 import { ConvertService } from '../../services/convert.service';
 import { StateService } from '../../services/state.service';
 import {
@@ -70,6 +70,7 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
   imageHeight = 0;
 
   private intensity$ = new Subject<number>();
+  private bwRequest$ = new Subject<string>();
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -108,56 +109,72 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
     this.fillSpace = this.state.fillSpace;
     this.invert = this.state.invert;
 
-    if (!this.state.originalBwImage) {
-      this.imageLoaded = false;
-      this.convertService
-        .toBw(
-          this.state.originalImage,
-          this.state.cropSelection,
-          this.orientation,
-          this.fillSpace,
-          this.invert,
-          this.state.rotation
-        )
-        .subscribe({
-          next: (blob) => {
-            this.state.setBwImage(blob);
-            this.loadCurrentImage();
-          },
-          error: (err) => {
-            this.imageLoaded = true;
-            this.showError(err, 'Failed to convert the image to black & white.');
-          },
-        });
-    }
+    this.bwRequest$
+      .pipe(
+        tap(() => {
+          this.errorMessage = null;
+          this.imageLoaded = false;
+        }),
+        switchMap((fallback) =>
+          this.convertService
+            .toBw(
+              this.state.originalImage!,
+              this.state.cropSelection!,
+              this.orientation,
+              this.fillSpace,
+              this.invert,
+              this.state.rotation
+            )
+            .pipe(
+              catchError((err) => {
+                this.imageLoaded = true;
+                this.showError(err, fallback);
+                return EMPTY;
+              })
+            )
+        ),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((blob) => {
+        this.state.setBwImage(blob);
+        this.loadCurrentImage();
+      });
 
     this.intensity$
       .pipe(
         debounceTime(300),
+        tap((val) => {
+          if (val === 0 || !this.state.originalBwImage) {
+            this.state.restoreOriginalBwImage();
+            this.processing = false;
+            this.loadCurrentImage();
+          } else {
+            this.processing = true;
+          }
+        }),
         switchMap((val) => {
           if (val === 0 || !this.state.originalBwImage) {
-            this.state.setCurrentBwImage(this.state.originalBwImage!);
-            this.processing = false;
-            return [];
+            return EMPTY;
           }
-          this.processing = true;
-          return this.convertService.denoise(this.state.originalBwImage!, val);
+          return this.convertService.denoise(this.state.originalBwImage, val).pipe(
+            catchError((err) => {
+              this.processing = false;
+              this.showError(err, 'Failed to denoise the image.');
+              return EMPTY;
+            })
+          );
         }),
         takeUntil(this.destroy$)
       )
-      .subscribe({
-        next: (blob) => {
-          if (blob instanceof Blob) {
-            this.state.setCurrentBwImage(blob);
-            this.loadCurrentImage();
-          }
-          this.processing = false;
-        },
-        error: (err) => {
-          this.processing = false;
-          this.showError(err, 'Failed to denoise the image.');
-        },
+      .subscribe((blob) => {
+        this.state.setCurrentBwImage(blob);
+        this.loadCurrentImage();
+        this.processing = false;
       });
+
+    if (!this.state.originalBwImage) {
+      this.bwRequest$.next('Failed to convert the image to black & white.');
+    }
   }
 
   ngAfterViewInit(): void {
@@ -260,9 +277,7 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onBack(): void {
-    this.state.cleanupObjectUrls();
-    this.state.originalBwImage = null;
-    this.state.currentBwImage = null;
+    this.state.resetBwState();
     this.router.navigate(['/step1']);
   }
 
@@ -284,30 +299,10 @@ export class Step2BwComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private applyOptions(): void {
     if (!this.state.originalImage || !this.state.cropSelection) return;
-    this.errorMessage = null;
     this.intensity = 0;
     this.intensity$.next(0);
     this.processing = false;
-    this.imageLoaded = false;
-    this.convertService
-      .toBw(
-        this.state.originalImage,
-        this.state.cropSelection,
-        this.orientation,
-        this.fillSpace,
-        this.invert,
-        this.state.rotation
-      )
-      .subscribe({
-        next: (blob) => {
-          this.state.setBwImage(blob);
-          this.loadCurrentImage();
-        },
-        error: (err) => {
-          this.imageLoaded = true;
-          this.showError(err, 'Failed to apply the selected options.');
-        },
-      });
+    this.bwRequest$.next('Failed to apply the selected options.');
   }
 
   onIntensityChange(): void {

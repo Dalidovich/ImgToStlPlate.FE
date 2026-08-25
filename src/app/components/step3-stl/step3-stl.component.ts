@@ -31,6 +31,9 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
 
   private mesh!: THREE.Mesh;
   private geometry!: THREE.BufferGeometry;
+  private material!: THREE.MeshPhongMaterial;
+  private initTimeoutId = 0;
+  private destroyed = false;
   invertColors = false;
 
   constructor(
@@ -44,20 +47,33 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
       this.router.navigate(['/step2']);
       return;
     }
-    setTimeout(() => this.initViewer());
+    this.initTimeoutId = window.setTimeout(() => this.initViewer());
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    clearTimeout(this.initTimeoutId);
     cancelAnimationFrame(this.animFrameId);
     this.controls?.dispose();
     this.renderer?.domElement.removeEventListener('wheel', this.onWheel);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('resize', this.onResize);
-    this.renderer?.dispose();
+    window.removeEventListener('blur', this.onWindowBlur);
+    if (this.mesh) {
+      this.scene?.remove(this.mesh);
+    }
+    this.geometry?.dispose();
+    this.material?.dispose();
+    if (this.renderer) {
+      this.renderer.domElement.remove();
+      this.renderer.forceContextLoss();
+      this.renderer.dispose();
+    }
   }
 
   private initViewer(): void {
+    if (this.destroyed || !this.viewerRef) return;
     const container = this.viewerRef.nativeElement;
     const width = container.clientWidth;
     const height = container.clientHeight;
@@ -96,6 +112,7 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
+    window.addEventListener('blur', this.onWindowBlur);
   }
 
   private loadStl(): void {
@@ -105,19 +122,23 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
 
     loader.load(url, (geometry) => {
       URL.revokeObjectURL(url);
+      if (this.destroyed) {
+        geometry.dispose();
+        return;
+      }
       geometry.computeBoundingBox();
 
       this.geometry = geometry;
       this.applyVertexColors(this.invertColors);
 
-      const material = new THREE.MeshPhongMaterial({
+      this.material = new THREE.MeshPhongMaterial({
         vertexColors: true,
         specular: 0x222222,
         shininess: 20,
         flatShading: true,
       });
 
-      this.mesh = new THREE.Mesh(geometry, material);
+      this.mesh = new THREE.Mesh(geometry, this.material);
       this.scene.add(this.mesh);
 
       const box = new THREE.Box3().setFromObject(this.mesh);
@@ -203,6 +224,12 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
     }
   };
 
+  private onWindowBlur = (): void => {
+    if (this.controls) {
+      this.controls.enableZoom = true;
+    }
+  };
+
   private onResize = (): void => {
     if (!this.viewerRef) return;
     const container = this.viewerRef.nativeElement;
@@ -220,6 +247,6 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
     a.href = url;
     a.download = 'model.stl';
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url));
   }
 }
