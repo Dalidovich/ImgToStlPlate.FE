@@ -79,6 +79,14 @@
           },
           "defaultConfiguration": "production"
         },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "buildTarget": "ImgToStlPlate:build:development",
+            "tsConfig": "tsconfig.spec.json",
+            "runner": "vitest"
+          }
+        },
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
