@@ -1,59 +1,21 @@
-# ImgToStlPlate
+# ImgToStlPlate — frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.14.
+Angular 21 SPA for ImgToStlPlate. It is the client half of a two-repository project; the backend lives
+in `ImgToStlPlate.BE` next to this folder.
 
-## Development server
+**Start with the root `README.md` (`../README.md`)** — it covers the repository layout, the two-repo
+caveat, how to run both halves together, how to package the single-file exe, and the API contract.
 
-To start a local development server, run:
+## Quick reference
 
-```bash
-ng serve
-```
+| Task | Command |
+|---|---|
+| Install dependencies | `npm install` |
+| Dev server on `http://localhost:4200` | `npm start` |
+| Production build into `dist/ImgToStlPlate/browser` | `npm run build` |
+| Unit tests (Vitest) | `npm test` |
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The app calls the API through the relative path `/api/convert`, never an absolute origin — the packaging
+script fails the build if an absolute `localhost` origin ends up in the bundle. In development,
+`proxy.conf.json` forwards `/api` to the API on `http://localhost:5257`; in the packaged exe the SPA and
+the API share one origin.
