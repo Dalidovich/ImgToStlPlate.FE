@@ -11,7 +11,7 @@ export interface CropSelection {
 
 @Injectable({ providedIn: 'root' })
 export class ConvertService {
-  private apiUrl = 'http://localhost:5257/api/convert';
+  private apiUrl = '/api/convert';
 
   constructor(private http: HttpClient) {}
 
