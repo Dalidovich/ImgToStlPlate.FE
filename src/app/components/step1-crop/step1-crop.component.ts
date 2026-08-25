@@ -23,6 +23,7 @@ interface Rect {
 })
 export class Step1CropComponent implements AfterViewInit, OnDestroy {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
 
   private ctx!: CanvasRenderingContext2D;
   private image = new Image();
@@ -46,6 +47,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   showOk = false;
 
   imageLoaded = false;
+  uploadError: string | null = null;
   imageWidth = 0;
   imageHeight = 0;
   isDragging = false;
@@ -97,18 +99,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
-    const file = input.files[0];
-    this.state.resetBwState();
-    this.state.originalImage = file;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.state.originalImageUrl = reader.result as string;
-      this.loadImageFromUrl(this.state.originalImageUrl);
-    };
-    reader.readAsDataURL(file);
-
-    this.cancelSelection();
+    this.acceptFile(input.files[0]);
   }
 
   onDragOver(event: DragEvent): void {
@@ -131,9 +122,17 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     const files = event.dataTransfer?.files;
     if (!files?.length) return;
 
-    const file = files[0];
-    if (!file.type.startsWith('image/')) return;
+    this.acceptFile(files[0]);
+  }
 
+  private acceptFile(file: File): void {
+    if (!file.type.startsWith('image/')) {
+      this.uploadError = 'Only image files are supported.';
+      this.clearFileInput();
+      return;
+    }
+
+    this.uploadError = null;
     this.state.resetBwState();
     this.state.originalImage = file;
 
@@ -145,6 +144,12 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     reader.readAsDataURL(file);
 
     this.cancelSelection();
+  }
+
+  private clearFileInput(): void {
+    if (this.fileInputRef) {
+      this.fileInputRef.nativeElement.value = '';
+    }
   }
 
   private loadImageFromUrl(url: string): void {
@@ -306,7 +311,7 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  onCanvasMouseUp(event: MouseEvent): void {
+  onCanvasMouseUp(): void {
     if (this.isPanning) {
       this.isPanning = false;
     }
@@ -353,9 +358,13 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
     };
   }
 
+  get isSelectionPending(): boolean {
+    return this.mode !== 'none' && !this.showOk;
+  }
+
   setMode(newMode: CropMode): void {
     if (newMode === this.mode) return;
-    if (this.mode !== 'none' && !this.showOk) {
+    if (this.isSelectionPending) {
       return;
     }
     this.cancelSelection();
@@ -377,6 +386,8 @@ export class Step1CropComponent implements AfterViewInit, OnDestroy {
   }
 
   unloadImage(): void {
+    this.clearFileInput();
+    this.uploadError = null;
     this.imageLoaded = false;
     this.imageWidth = 0;
     this.imageHeight = 0;

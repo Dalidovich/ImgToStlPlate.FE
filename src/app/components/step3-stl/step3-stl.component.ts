@@ -187,13 +187,13 @@ export class Step3StlComponent implements AfterViewInit, OnDestroy {
     this.applyVertexColors(this.invertColors);
   }
 
-  resetRotation(): void {
+  resetViewRotation(): void {
     if (this.mesh) {
       this.mesh.rotation.z = 0;
     }
   }
 
-  get isRotated(): boolean {
+  get isViewRotated(): boolean {
     return this.mesh ? Math.abs(this.mesh.rotation.z) > 0.001 : false;
   }
 

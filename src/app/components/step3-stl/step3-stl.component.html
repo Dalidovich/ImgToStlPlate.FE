@@ -7,17 +7,17 @@
 
   <div class="viewer-container">
     <div #viewer class="viewer"></div>
-    <div class="viewer-hint">Ctrl + Scroll to rotate</div>
+    <div class="viewer-hint">Ctrl + Scroll to rotate the preview (view only)</div>
   </div>
 
   <div class="footer">
-    @if (isRotated) {
-      <button class="invert-btn" (click)="resetRotation()">
+    @if (isViewRotated) {
+      <button class="invert-btn" (click)="resetViewRotation()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 12a9 9 0 109-9"/>
           <polyline points="3 3 3 9 9 9"/>
         </svg>
-        Reset Rotation
+        Reset View Rotation
       </button>
     }
 

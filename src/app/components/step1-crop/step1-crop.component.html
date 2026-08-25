@@ -29,6 +29,9 @@
             (change)="onFileSelected($event)"
             hidden
           />
+          @if (uploadError) {
+            <div class="upload-error">{{ uploadError }}</div>
+          }
         </div>
       }
 
@@ -37,7 +40,7 @@
         class="crop-canvas"
         (mousedown)="onCanvasMouseDown($event)"
         (mousemove)="onCanvasMouseMove($event)"
-        (mouseup)="onCanvasMouseUp($event)"
+        (mouseup)="onCanvasMouseUp()"
         (wheel)="onCanvasWheel($event)"
         (contextmenu)="onCanvasContextMenu($event)"
       ></canvas>
@@ -51,7 +54,7 @@
             class="mode-btn"
             [class.active]="mode === 'crop'"
             (click)="setMode('crop')"
-            [disabled]="(mode !== 'none' && !showOk)"
+            [disabled]="isSelectionPending"
           >
             Crop
           </button>
@@ -59,13 +62,13 @@
             class="mode-btn"
             [class.active]="mode === 'genericSize'"
             (click)="setMode('genericSize')"
-            [disabled]="(mode !== 'none' && !showOk)"
+            [disabled]="isSelectionPending"
           >
             Generic size
           </button>
         </div>
 
-        @if (mode !== 'none' && !showOk) {
+        @if (isSelectionPending) {
           <div class="mode-hint">
             Click & drag to select. Right-click to cancel.
           </div>
